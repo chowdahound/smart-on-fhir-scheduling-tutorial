@@ -323,3 +323,4 @@ function clearPatientUI() {
   $('#patients').html('');
   $('#patients-holder-row').hide();
 }
+//commit not working
