@@ -55,6 +55,7 @@ function slotSearch() {
   });
 }
 
+//CFX Replaced this function
 function slotHTML(id, type, start, end) {
   console.log('Slot: id:[' + id + '] type:[' + type + '] start:[' + start + '] end:[' + end + ']');
 
@@ -67,6 +68,8 @@ function slotHTML(id, type, start, end) {
              "<h5 class='card-title'>" + type + '</h5>' +
              "<p class='card-text'>Start: " + prettyStart + '</p>' +
              "<p class='card-text'>End: " + prettyEnd + '</p>' +
+             "<a href='javascript:void(0);' class='card-link' onclick='appointmentCreate(\"" +
+               slotReference + "\", \"Patient/4704007\");'>Book</a>" +
            '</div>' +
          '</div>';
 }
@@ -87,4 +90,59 @@ function clearUI() {
   $('#appointment-holder-row').hide();
   $('#patient-search-create-row').hide();
 }
-;
+//CFX Add code to bottom
+$('#clear-appointment').on('click', function(e) {
+  $('#appointment').html('');
+  $('#appointment-holder-row').hide();
+});
+
+function appointmentCreate(slotReference, patientReference) {
+  clearUI();
+  $('#loading-row').show();
+
+  var appointmentBody = appointmentJSON(slotReference, patientReference);
+
+  // FHIR.oauth2.ready handles refreshing access tokens
+  FHIR.oauth2.ready(function(smart) {
+    smart.api.create({resource: appointmentBody}).then(
+
+      // Display Appointment information if the call succeeded
+      function(appointment) {
+        renderAppointment(appointment.headers('Location'));
+      },
+
+      // Display 'Failed to write Appointment to FHIR server' if the call failed
+      function() {
+        clearUI();
+        $('#errors').html('<p>Failed to write Appointment to FHIR server</p>');
+        $('#errors-row').show();
+      }
+    );
+  });
+}
+
+function appointmentJSON(slotReference, patientReference) {
+  return {
+    resourceType: 'Appointment',
+    slot: [
+      {
+        reference: slotReference
+      }
+    ],
+    participant: [
+      {
+        actor: {
+          reference: patientReference
+        },
+        status: 'needs-action'
+      }
+    ],
+    status: 'proposed'
+  };
+}
+
+function renderAppointment(appointmentLocation) {
+  clearUI();
+  $('#appointment').html('<p>Created Appointment ' + appointmentLocation.match(/\d+$/)[0] + '</p>');
+  $('#appointment-holder-row').show();
+}
